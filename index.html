@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Phỏng Trực Quan: HTTP vs HTTPS - An Toàn Mạng</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #060913;
+            --bg-surface: rgba(15, 23, 42, 0.75);
+            --bg-card: rgba(30, 41, 59, 0.55);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --primary: #38bdf8;
+            --primary-rgb: 56, 189, 248;
+            --danger: #f87171;
+            --danger-rgb: 248, 113, 113;
+            --success: #4ade80;
+            --success-rgb: 74, 222, 128;
+            --warning: #fbbf24;
+            --warning-rgb: 251, 191, 36;
+            --purple: #a855f7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --terminal-bg: #030712;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 20px 60px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glowing Background Orbs */
+        .ambient-glow {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.35;
+            animation: pulseOrb 12s ease-in-out infinite alternate;
+        }
+
+        .orb-1 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, #0284c7, #1e1b4b);
+            top: -100px;
+            left: 5%;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #ef4444, #7f1d1d);
+            top: 40%;
+            left: 40%;
+            opacity: 0.22;
+            animation-delay: -4s;
+        }
+
+        .orb-3 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, #10b981, #064e3b);
+            bottom: -80px;
+            right: 5%;
+            animation-delay: -8s;
+        }
+
+        @keyframes pulseOrb {
+            0% { transform: scale(1) translate(0, 0); }
+            50% { transform: scale(1.1) translate(30px, -20px); }
+            100% { transform: scale(0.95) translate(-20px, 30px); }
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header Bar */
+        header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #7dd3fc;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.7); }
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.7rem);
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 40%, #7dd3fc 75%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.98rem;
+            max-width: 720px;
+            margin: 0 auto 16px;
+            line-height: 1.5;
+        }
+
+        /* Preset Toolbar */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preset-btn:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.4);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .preset-btn.active {
+            background: rgba(56, 189, 248, 0.25);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .sound-toggle {
+            margin-left: 6px;
+        }
+
+        /* Visual Interactive Pipeline */
+        .pipeline-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pipeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .pipeline-track {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 40px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+        }
+
+        .cable-line {
+            position: absolute;
+            top: 50%;
+            left: 90px;
+            right: 90px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-50%);
+            z-index: 1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .cable-beam {
+            position: absolute;
+            top: 0;
+            left: -30%;
+            width: 30%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            opacity: 0.8;
+            filter: blur(1px);
+        }
+
+        .cable-beam.animating {
+            animation: transmitBeam 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes transmitBeam {
+            0% { left: -30%; }
+            100% { left: 100%; }
+        }
+
+        .pipeline-node {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 90px;
+        }
+
+        .node-icon-wrapper {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .pipeline-node.node-client .node-icon-wrapper { border-color: #38bdf8; color: #38bdf8; }
+        .pipeline-node.node-hacker .node-icon-wrapper { border-color: #f87171; color: #f87171; }
+        .pipeline-node.node-server .node-icon-wrapper { border-color: #4ade80; color: #4ade80; }
+
+        .pipeline-node.active .node-icon-wrapper {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px currentColor;
+        }
+
+        .node-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            white-space: nowrap;
+        }
+
+        .node-sub {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Animated Floating Packet */
+        .animated-packet {
+            position: absolute;
+            top: 50%;
+            left: 90px;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: #0284c7;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: 0 0 20px rgba(2, 132, 199, 0.8);
+            display: none;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: left 0.1s linear;
+        }
+
+        .animated-packet.packet-raw {
+            background: #64748b;
+            box-shadow: 0 0 15px rgba(100, 116, 139, 0.7);
+        }
+
+        .animated-packet.packet-http {
+            background: #ea580c;
+            box-shadow: 0 0 20px rgba(234, 88, 12, 0.8);
+        }
+
+        .animated-packet.packet-https {
+            background: #059669;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.9);
+            border: 1px solid #6ee7b7;
+        }
+
+        /* Main Grid: 3 Columns */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            align-items: stretch;
+            margin-top: 10px;
+        }
+
+        .card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 18px;
+            padding: 24px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.16);
+            transform: translateY(-2px);
+        }
+
+        .card-client { border-top: 3px solid var(--primary); }
+        .card-hacker { border-top: 3px solid var(--danger); }
+        .card-server { border-top: 3px solid var(--success); }
+
+        .card-header-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .card h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.18rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #f1f5f9;
+        }
+
+        .card-tag {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .tag-client { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+        .tag-hacker { background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.3); }
+        .tag-server { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+
+        label {
+            display: block;
+            margin: 12px 0 6px;
+            font-size: 0.83rem;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.2px;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(8, 12, 22, 0.7);
+            color: #f8fafc;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            background: rgba(8, 12, 22, 0.95);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        select option {
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .toggle-password-btn {
+            position: absolute;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-password-btn:hover {
+            color: #fff;
+        }
+
+        /* Action Buttons */
+        .btn-send {
+            width: 100%;
+            padding: 13px 18px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            margin-top: 18px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-send:hover {
+            background: linear-gradient(135deg, #0369a1, #1d4ed8);
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.45);
+        }
+
+        .btn-send:active {
+            transform: translateY(0);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Terminal Window */
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--terminal-bg);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            margin-top: 10px;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        .terminal-bar {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .window-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #f59e0b; }
+        .dot-green { background: #10b981; }
+
+        .terminal-title {
+            font-size: 0.72rem;
+            color: #64748b;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+        }
+
+        .terminal-box {
+            padding: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.6;
+            min-height: 160px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #cbd5e1;
+            flex: 1;
+            overflow-y: auto;
+            max-height: 250px;
+        }
+
+        .terminal-box::-webkit-scrollbar {
+            width: 5px;
+        }
+        .terminal-box::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .danger {
+            color: #fca5a5;
+            border-left: 3px solid #ef4444;
+            background: rgba(239, 68, 68, 0.06);
+        }
+
+        .success {
+            color: #86efac;
+            border-left: 3px solid #22c55e;
+            background: rgba(34, 197, 94, 0.06);
+        }
+
+        .warning {
+            color: #fde047;
+            border-left: 3px solid #f59e0b;
+            background: rgba(245, 158, 11, 0.06);
+        }
+
+        /* Verdict Box */
+        .verdict-box {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 48px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .verdict-box.verdict-danger {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+
+        .verdict-box.verdict-warning {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+        }
+
+        .verdict-box.verdict-success {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #4ade80;
+        }
+
+        /* Tamper Control Section in Hacker Card */
+        .hacker-action-bar {
+            margin-top: 12px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.78rem;
+        }
+
+        .hacker-action-bar span {
+            color: #fca5a5;
+            font-weight: 600;
+        }
+
+        .mitm-active-chip {
+            background: #ef4444;
+            color: white;
+            font-size: 0.68rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            animation: pulseChip 1.5s infinite;
+        }
+
+        @keyframes pulseChip {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Comparison Section */
+        .comparison-section {
+            margin-top: 36px;
+            background: var(--bg-surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        .comparison-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .comparison-desc {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            margin-bottom: 20px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        .compare-table th {
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .compare-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+            vertical-align: middle;
+        }
+
+        .compare-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.78rem;
+        }
+
+        .badge-bad { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-good { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .badge-neutral { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+
+        /* Security Key Highlights */
+        .key-takeaways {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .takeaway-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .takeaway-title {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #38bdf8;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .takeaway-text {
+            font-size: 0.82rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .key-takeaways {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .pipeline-track {
+                padding: 16px 10px;
+            }
+            .cable-line {
+                left: 50px;
+                right: 50px;
+            }
+            .node-icon-wrapper {
+                width: 44px;
+                height: 44px;
+                font-size: 1.2rem;
+            }
+            .toolbar {
+                flex-direction: column;
+            }
+            .preset-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Glowing Background Orbs -->
+    <div class="ambient-glow">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header>
+            <div class="badge-pill">
+                <span class="pulse-dot"></span>
+                <span>Phòng Thí Nghiệm An Ninh Mạng • Nhóm 10</span>
+            </div>
+            <h1>🌐 PHÒNG THÍ NGHIỆM MÔ PHỎNG: HTTP VS HTTPS</h1>
+            <p class="subtitle">
+                Trực quan hóa quá trình truyền dữ liệu từ Máy Khách (Client) qua Mạng Công Cộng (Wi-Fi/Router) đến Máy Chủ (Server), mô phỏng cơ chế tấn công <strong>Man-in-the-Middle (MITM)</strong> và cách thức mã hóa <strong>TLS 1.3 / SSL</strong> bảo vệ thông tin.
+            </p>
+
+            <!-- Presets Toolbar -->
+            <div class="toolbar">
+                <span style="font-size: 0.82rem; color: #94a3b8; font-weight: 600;">Dữ liệu mẫu:</span>
+                <button type="button" class="preset-btn active" onclick="loadPreset('bank')">🏦 Đăng Nhập Ngân Hàng</button>
+                <button type="button" class="preset-btn" onclick="loadPreset('cc')">💳 Thanh Toán Thẻ Visa</button>
+                <button type="button" class="preset-btn" onclick="loadPreset('secret')">🕵️ Tin Nhắn Mật Quân Sự</button>
+                <button type="button" class="preset-btn sound-toggle" id="soundBtn" onclick="toggleSound()">🔊 Âm Thanh: Bật</button>
+            </div>
+        </header>
+
+        <!-- Dynamic Visual Network Pipeline Graphic -->
+        <div class="pipeline-card">
+            <div class="pipeline-header">
+                <span>📡 SƠ ĐỒ ĐƯỜNG TRUYỀN MẠNG VẬT LÝ VÀ ĐIỂM ĐÁNH CHẶN</span>
+                <span id="pipelineStatus">Trạng thái: Sẵn sàng truyền gói tin</span>
+            </div>
+
+            <div class="pipeline-track" id="pipelineTrack">
+                <div class="cable-line">
+                    <div class="cable-beam animating" id="cableBeam"></div>
+                </div>
+
+                <!-- Animated Floating Packet Indicator -->
+                <div class="animated-packet" id="animatedPacket">
+                    <span id="packetIcon">📦</span>
+                    <span id="packetText">Gói tin TCP</span>
+                </div>
+
+                <!-- Node 1: Client -->
+                <div class="pipeline-node node-client" id="nodeClient">
+                    <div class="node-icon-wrapper">💻</div>
+                    <span class="node-label">Máy Khách</span>
+                    <span class="node-sub">192.168.1.15</span>
+                </div>
+
+                <!-- Node 2: Hacker / Wi-Fi Router MITM -->
+                <div class="pipeline-node node-hacker" id="nodeHacker">
+                    <div class="node-icon-wrapper">🦹</div>
+                    <span class="node-label">Kẻ Tấn Công (MITM)</span>
+                    <span class="node-sub">192.168.1.1 (Router)</span>
+                </div>
+
+                <!-- Node 3: Server -->
+                <div class="pipeline-node node-server" id="nodeServer">
+                    <div class="node-icon-wrapper">🖥️</div>
+                    <span class="node-label">Máy Chủ Đích</span>
+                    <span class="node-sub">104.21.45.89</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3 Interactive Cards -->
+        <div class="container">
+            
+            <!-- 1. BÊN GỬI: CLIENT -->
+            <div class="card card-client">
+                <div class="card-header-area">
+                    <h3>👤 Người Dùng (Client)</h3>
+                    <span class="card-tag tag-client">Source</span>
+                </div>
+
+                <label for="protocol">Giao thức truyền tải:</label>
+                <select id="protocol" onchange="onProtocolChange()">
+                    <option value="raw">1. Không dùng giao thức (Raw Data / Socket thô)</option>
+                    <option value="http">2. Giao thức HTTP (Cổng 80 - Bản rõ)</option>
+                    <option value="https" selected>3. Giao thức HTTPS (Cổng 443 - Mã hóa TLS 1.3)</option>
+                </select>
+
+                <label for="username">Tên đăng nhập / Tài khoản:</label>
+                <input type="text" id="username" value="gen_phu" placeholder="Nhập username...">
+
+                <label for="password">Mật khẩu bí mật / Dữ liệu nhạy cảm:</label>
+                <div class="input-group">
+                    <input type="password" id="password" value="MatKhauSieuBiMat123" placeholder="Nhập mật khẩu...">
+                    <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()" title="Ẩn/Hiện mật khẩu">👁️</button>
+                </div>
+
+                <button class="btn-send" id="btnSend" onclick="simulateSend()">
+                    <span>🚀 Bấm để gửi dữ liệu</span>
+                </button>
+
+                <label>Nhật ký Client (Client Log):</label>
+                <div class="terminal-container">
+                    <div class="terminal-bar">
+                        <div class="window-dots">
+                            <span class="dot dot-red"></span>
+                            <span class="dot dot-yellow"></span>
+                            <span class="dot dot-green"></span>
+                        </div>
+                        <span class="terminal-title">client_terminal.log</span>
+                    </div>
+                    <div id="clientStatus" class="terminal-box">Sẵn sàng gửi... Bấm nút gửi để truyền gói tin qua mạng.</div>
+                </div>
+            </div>
+
+            <!-- 2. ĐỨNG GIỮA: KẺ TẤN CÔNG -->
+            <div class="card card-hacker">
+                <div class="card-header-area">
+                    <h3>🦹 Kẻ Nghe Lén (Hacker - MITM)</h3>
+                    <span class="card-tag tag-hacker">Sniffer</span>
+                </div>
+
+                <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.4;">
+                    Đặt card mạng ở chế độ Promiscuous (nghe lén toàn bộ gói tin Wi-Fi công cộng):
+                </p>
+
+                <div class="hacker-action-bar">
+                    <span>📡 Chế độ bắt gói: Wireshark Promiscuous</span>
+                    <span class="mitm-active-chip" id="snifferStatus">LISTENING</span>
+                </div>
+
+                <label style="margin-top: 14px;">Gói tin chặn bắt được trên mạng:</label>
+                <div class="terminal-container">
+                    <div class="terminal-bar">
+                        <div class="window-dots">
+                            <span class="dot dot-red"></span>
+                            <span class="dot dot-yellow"></span>
+                            <span class="dot dot-green"></span>
+                        </div>
+                        <span class="terminal-title">wireshark_dump.pcap</span>
+                    </div>
+                    <div id="hackerView" class="terminal-box">Đang lắng nghe gói tin trên mạng...</div>
+                </div>
+
+                <div id="hackerVerdict" class="verdict-box">
+                    <span>Chưa có dữ liệu đi qua router.</span>
+                </div>
+            </div>
+
+            <!-- 3. BÊN NHẬN: SERVER -->
+            <div class="card card-server">
+                <div class="card-header-area">
+                    <h3>🖥️ Máy Chủ (Web Server)</h3>
+                    <span class="card-tag tag-server">Destination</span>
+                </div>
+
+                <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.4;">
+                    Tiếp nhận gói tin, bóc tách header TCP/IP, giải mã và xử lý request:
+                </p>
+
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 0.78rem;">
+                        <span style="color: #94a3b8;">Cổng lắng nghe: </span>
+                        <strong id="serverPortBadge" style="color: #4ade80;">443 (HTTPS/TLS)</strong>
+                    </div>
+                    <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 0.78rem;">
+                        <span style="color: #94a3b8;">Trạng thái: </span>
+                        <strong style="color: #38bdf8;">ACTIVE 200</strong>
+                    </div>
+                </div>
+
+                <label style="margin-top: 14px;">Dữ liệu server giải mã & nhận được:</label>
+                <div class="terminal-container">
+                    <div class="terminal-bar">
+                        <div class="window-dots">
+                            <span class="dot dot-red"></span>
+                            <span class="dot dot-yellow"></span>
+                            <span class="dot dot-green"></span>
+                        </div>
+                        <span class="terminal-title">nginx_access.log</span>
+                    </div>
+                    <div id="serverView" class="terminal-box">Chờ kết nối từ Client...</div>
+                </div>
+
+                <div id="serverVerdict" class="verdict-box">
+                    <span>Chờ request từ mạng...</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Educational Comparison & Security Deep-Dive -->
+        <div class="comparison-section">
+            <h2 class="comparison-title">
+                <span>📊 BẢNG SO SÁNH CHUYÊN SÂU: HTTP VS HTTPS</span>
+            </h2>
+            <p class="comparison-desc">
+                Tại sao các tổ chức bảo mật và Google Chrome, Apple Safari bắt buộc các website hiện đại phải triển khai HTTPS (SSL/TLS):
+            </p>
+
+            <div class="table-responsive">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>Tiêu chí bảo mật</th>
+                            <th>Không dùng giao thức (Raw)</th>
+                            <th>Giao thức HTTP</th>
+                            <th>Giao thức HTTPS (TLS 1.3)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Cổng mặc định (Port)</strong></td>
+                            <td>Tùy ý (Socket thô)</td>
+                            <td><span class="badge-status badge-neutral">Port 80</span></td>
+                            <td><span class="badge-status badge-neutral">Port 443</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mã hóa dữ liệu (Encryption)</strong></td>
+                            <td><span class="badge-status badge-bad">❌ Không (Byte thô)</span></td>
+                            <td><span class="badge-status badge-bad">❌ Không (Bản rõ / Plaintext)</span></td>
+                            <td><span class="badge-status badge-good">✅ AES-256-GCM / ChaCha20</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tính toàn vẹn (Data Integrity)</strong></td>
+                            <td><span class="badge-status badge-bad">❌ Bị Hacker sửa tùy ý</span></td>
+                            <td><span class="badge-status badge-bad">❌ Dễ bị chèn mã độc / sửa dữ liệu</span></td>
+                            <td><span class="badge-status badge-good">✅ Mã MAC/HMAC chống giả mạo</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Xác thực máy chủ (Authentication)</strong></td>
+                            <td><span class="badge-status badge-bad">❌ Không xác thực</span></td>
+                            <td><span class="badge-status badge-bad">❌ Có thể bị giả mạo DNS/Server</span></td>
+                            <td><span class="badge-status badge-good">✅ Chứng chỉ số SSL/TLS (CA)</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chống Man-in-the-Middle (MITM)</strong></td>
+                            <td><span class="badge-status badge-bad">❌ 0% phòng thủ</span></td>
+                            <td><span class="badge-status badge-bad">❌ Hacker đọc và sửa được toàn bộ</span></td>
+                            <td><span class="badge-status badge-good">✅ Hacker chỉ thấy ciphertext vô nghĩa</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cảnh báo trình duyệt</strong></td>
+                            <td>Không dùng trên Web</td>
+                            <td><span class="badge-status badge-bad">⚠️ "Không bảo mật" (Not Secure)</span></td>
+                            <td><span class="badge-status badge-good">🔒 Biểu tượng ổ khóa an toàn</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Key Takeaway Cards -->
+            <div class="key-takeaways">
+                <div class="takeaway-card">
+                    <div class="takeaway-title">🔐 1. Tính Bảo Mật (Confidentiality)</div>
+                    <div class="takeaway-text">
+                        HTTPS mã hóa luồng dữ liệu trước khi gửi vào cáp quang/sóng Wi-Fi. Dù kẻ tấn công có bắt được gói tin qua Wireshark cũng không thể xem mật khẩu hay tài khoản ngân hàng của bạn.
+                    </div>
+                </div>
+
+                <div class="takeaway-card">
+                    <div class="takeaway-title">🛡️ 2. Tính Toàn Vẹn (Integrity)</div>
+                    <div class="takeaway-text">
+                        Kẻ gian đứng ở router không thể bí mật tráo đổi số tài khoản nhận tiền hay nội dung tin nhắn. Bất kỳ sự thay đổi dù là 1 bit nào cũng sẽ khiến mã xác thực (MAC) bị sai và Server lập tức hủy kết nối.
+                    </div>
+                </div>
+
+                <div class="takeaway-card">
+                    <div class="takeaway-title">📜 3. Tính Xác Thực (Authentication)</div>
+                    <div class="takeaway-text">
+                        Nhờ chứng chỉ số SSL/TLS do các tổ chức CA uy tín ký nhận, trình duyệt xác minh chắc chắn rằng bạn đang kết nối đúng máy chủ của ngân hàng chứ không phải một máy chủ lừa đảo mạo danh.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Dự án mô phỏng giáo dục an toàn mạng • Nhóm 10 • Phát triển với HTML, CSS & JavaScript thuần.
+        </footer>
+
+    </div>
+
+    <script>
+        // Audio Synthesizer via Web Audio API
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function playTone(freq, type, duration, delay = 0) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                setTimeout(() => {
+                    if (audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + duration);
+                }, delay);
+            } catch (e) {
+                // AudioContext blocked or not supported
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById("soundBtn");
+            btn.innerHTML = soundEnabled ? "🔊 Âm Thanh: Bật" : "🔇 Âm Thanh: Tắt";
+        }
+
+        // Toggle password show/hide
+        function togglePasswordVisibility() {
+            const pwd = document.getElementById("password");
+            if (pwd.type === "password") {
+                pwd.type = "text";
+            } else {
+                pwd.type = "password";
+            }
+        }
+
+        // Presets
+        const presets = {
+            bank: {
+                user: "khachhang_vip88",
+                pass: "BIDV_MatKhau2026@!",
+                proto: "https"
+            },
+            cc: {
+                user: "nguyen_van_a@gmail.com",
+                pass: "4111-2222-3333-4444|CVV:987",
+                proto: "http"
+            },
+            secret: {
+                user: "commander_alpha",
+                pass: "TOP_SECRET_COORDINATES_10.7769N",
+                proto: "raw"
+            }
+        };
+
+        function loadPreset(key) {
+            const data = presets[key];
+            if (!data) return;
+            document.getElementById("username").value = data.user;
+            document.getElementById("password").value = data.pass;
+            document.getElementById("protocol").value = data.proto;
+            
+            // Update active preset button style
+            document.querySelectorAll(".preset-btn").forEach(btn => {
+                if (!btn.classList.contains("sound-toggle")) {
+                    btn.classList.remove("active");
+                }
+            });
+            event.target.classList.add("active");
+
+            onProtocolChange();
+            simulateSend();
+        }
+
+        function onProtocolChange() {
+            const proto = document.getElementById("protocol").value;
+            const badge = document.getElementById("serverPortBadge");
+            if (proto === "https") {
+                badge.innerText = "443 (HTTPS/TLS 1.3)";
+                badge.style.color = "#4ade80";
+            } else if (proto === "http") {
+                badge.innerText = "80 (HTTP / Plaintext)";
+                badge.style.color = "#fbbf24";
+            } else {
+                badge.innerText = "Custom Raw Socket (No Port)";
+                badge.style.color = "#94a3b8";
+            }
+        }
+
+        // Animated Packet Moving Across the Network Beam
+        function animatePacketTransmission(proto, callback) {
+            const track = document.getElementById("pipelineTrack");
+            const packet = document.getElementById("animatedPacket");
+            const nodeClient = document.getElementById("nodeClient");
+            const nodeHacker = document.getElementById("nodeHacker");
+            const nodeServer = document.getElementById("nodeServer");
+            const pipelineStatus = document.getElementById("pipelineStatus");
+            const iconSpan = document.getElementById("packetIcon");
+            const textSpan = document.getElementById("packetText");
+
+            // Reset classes
+            packet.className = "animated-packet";
+            nodeClient.classList.remove("active");
+            nodeHacker.classList.remove("active");
+            nodeServer.classList.remove("active");
+
+            if (proto === "raw") {
+                packet.classList.add("packet-raw");
+                iconSpan.innerText = "📄";
+                textSpan.innerText = "Raw Bytes";
+            } else if (proto === "http") {
+                packet.classList.add("packet-http");
+                iconSpan.innerText = "🔓";
+                textSpan.innerText = "HTTP: Plaintext";
+            } else {
+                packet.classList.add("packet-https");
+                iconSpan.innerText = "🔒";
+                textSpan.innerText = "HTTPS: TLS Encrypted";
+            }
+
+            packet.style.display = "flex";
+            nodeClient.classList.add("active");
+            pipelineStatus.innerHTML = `Đang xuất gói tin từ <strong>Client (192.168.1.15)</strong>...`;
+            playTone(440, 'sine', 0.15);
+
+            const trackWidth = track.clientWidth;
+            const clientX = 90;
+            const hackerX = trackWidth / 2;
+            const serverX = trackWidth - 90;
+
+            packet.style.left = `${clientX}px`;
+
+            // Step 1: Client -> Hacker
+            let start = null;
+            const duration1 = 600;
+
+            function step1(timestamp) {
+                if (!start) start = timestamp;
+                const progress = Math.min((timestamp - start) / duration1, 1);
+                const currentX = clientX + (hackerX - clientX) * progress;
+                packet.style.left = `${currentX}px`;
+
+                if (progress < 1) {
+                    requestAnimationFrame(step1);
+                } else {
+                    // Arrived at Hacker
+                    nodeClient.classList.remove("active");
+                    nodeHacker.classList.add("active");
+                    if (proto === "https") {
+                        pipelineStatus.innerHTML = `🛡️ Đi qua Router: Hacker bắt được gói tin nhưng <strong>không giải mã được</strong>!`;
+                        playTone(320, 'sine', 0.2);
+                    } else {
+                        pipelineStatus.innerHTML = `🚨 Đi qua Router: Kẻ tấn công <strong>đã chặn bắt và đọc trộm</strong> gói tin!`;
+                        playTone(220, 'sawtooth', 0.3);
+                        playTone(180, 'sawtooth', 0.3, 100);
+                    }
+
+                    setTimeout(() => {
+                        // Step 2: Hacker -> Server
+                        let start2 = null;
+                        const duration2 = 600;
+                        function step2(timestamp2) {
+                            if (!start2) start2 = timestamp2;
+                            const progress2 = Math.min((timestamp2 - start2) / duration2, 1);
+                            const currentX2 = hackerX + (serverX - hackerX) * progress2;
+                            packet.style.left = `${currentX2}px`;
+
+                            if (progress2 < 1) {
+                                requestAnimationFrame(step2);
+                            } else {
+                                // Arrived at Server
+                                nodeHacker.classList.remove("active");
+                                nodeServer.classList.add("active");
+                                if (proto === "https") {
+                                    pipelineStatus.innerHTML = `✅ Gói tin an toàn đã đến <strong>Web Server</strong> và được giải mã thành công.`;
+                                    playTone(587.33, 'triangle', 0.2);
+                                    playTone(880, 'triangle', 0.3, 150);
+                                } else if (proto === "http") {
+                                    pipelineStatus.innerHTML = `⚠️ Gói tin đến Server thành công nhưng <strong>đã bị lộ trên đường truyền</strong>!`;
+                                } else {
+                                    pipelineStatus.innerHTML = `❌ Gói tin đến Server nhưng <strong>đã bị kẻ tấn công sửa đổi nội dung</strong>!`;
+                                }
+
+                                setTimeout(() => {
+                                    nodeServer.classList.remove("active");
+                                    if (callback) callback();
+                                }, 400);
+                            }
+                        }
+                        requestAnimationFrame(step2);
+                    }, 450);
+                }
+            }
+            requestAnimationFrame(step1);
+        }
+
+        // Core Simulation Function (Guarantees backward compatibility with original function and elements)
+        function simulateSend() {
+            const proto = document.getElementById("protocol").value;
+            const u = document.getElementById("username").value || "user_demo";
+            const p = document.getElementById("password").value || "password123";
+
+            const clientBox = document.getElementById("clientStatus");
+            const hackerBox = document.getElementById("hackerView");
+            const hackerVerdict = document.getElementById("hackerVerdict");
+            const serverBox = document.getElementById("serverView");
+            const serverVerdict = document.getElementById("serverVerdict");
+            const snifferStatus = document.getElementById("snifferStatus");
+            const sendBtn = document.getElementById("btnSend");
+
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = `<span>⏳ Đang truyền gói tin...</span>`;
+
+            // Clear verdicts temporarily during transit
+            hackerVerdict.className = "verdict-box";
+            hackerVerdict.innerHTML = "<span>⏳ Đang phân tích gói tin bắt được...</span>";
+            serverVerdict.className = "verdict-box";
+            serverVerdict.innerHTML = "<span>⏳ Đang chờ nhận dữ liệu...</span>";
+
+            const now = new Date().toLocaleTimeString();
+
+            if (proto === "raw") {
+                // Kịch bản 1: Raw Data
+                const rawPayload = `user=${u}&pass=${p}`;
+                clientBox.className = "terminal-box";
+                clientBox.innerHTML = `[${now}] Client bắt đầu gửi qua Socket thô:\nPayload: ${rawPayload}\nKích thước: ${rawPayload.length} bytes\nTrạng thái: Đã đẩy vào cáp mạng mà không có bất kỳ đóng gói bảo mật nào.`;
+
+                animatePacketTransmission("raw", () => {
+                    snifferStatus.innerText = "PACKET INJECTED";
+                    snifferStatus.style.background = "#ef4444";
+
+                    hackerBox.className = "terminal-box danger";
+                    hackerBox.innerHTML = `[${now}] BẮT ĐƯỢC DỮ LIỆU THÔ (RAW STREAM):\n${rawPayload}\n\n-> ⚠️ Hacker tiến hành MITM Packet Injection:\n-> Thay đổi mật khẩu thành: "HACKED_BY_MITM"`;
+                    
+                    hackerVerdict.className = "verdict-box verdict-danger";
+                    hackerVerdict.innerHTML = "❌ Bị đánh cắp và giả mạo dữ liệu!";
+
+                    serverBox.className = "terminal-box danger";
+                    serverBox.innerHTML = `[${now}] Máy chủ nhận gói tin:\nuser=${u}&pass=HACKED_BY_MITM\n\n[Checksum / Hash check]: KHÔNG TỒN TẠI\n[Cảnh báo]: Dữ liệu đã bị kẻ đứng giữa thay đổi hoàn toàn trước khi tới server.`;
+                    
+                    serverVerdict.className = "verdict-box verdict-danger";
+                    serverVerdict.innerHTML = "⚠️ Lỗi tính toàn vẹn (Dữ liệu đã bị đổi)";
+
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = `<span>🚀 Bấm để gửi dữ liệu</span>`;
+                });
+
+            } else if (proto === "http") {
+                // Kịch bản 2: HTTP
+                const httpRequest = `POST /api/v1/login HTTP/1.1\nHost: mybank.vn\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\nContent-Type: application/json\nContent-Length: ${JSON.stringify({user: u, pass: p}).length}\n\n{"user": "${u}", "pass": "${p}"}`;
+                
+                clientBox.className = "terminal-box";
+                clientBox.innerHTML = `[${now}] Gửi HTTP Request qua Port 80:\n${httpRequest}`;
+
+                animatePacketTransmission("http", () => {
+                    snifferStatus.innerText = "SNIFFED PLAINTEXT";
+                    snifferStatus.style.background = "#ea580c";
+
+                    hackerBox.className = "terminal-box danger";
+                    hackerBox.innerHTML = `[${now}] BẮT GÓI TIN HTTP (PLAINTEXT - PORT 80):\n${httpRequest}\n\n-> 🔓 Không có mã hóa: Hacker đọc được 100% nội dung request!`;
+                    
+                    hackerVerdict.className = "verdict-box verdict-danger";
+                    hackerVerdict.innerHTML = `🚨 LỘ TÀI KHOẢN: ${u} | MẬT KHẨU: ${p}`;
+
+                    serverBox.className = "terminal-box warning";
+                    serverBox.innerHTML = `[${now}] HTTP/1.1 200 OK\nServer: Nginx/1.24\nContent-Type: application/json\n\n{\n  "status": "success",\n  "message": "Đăng nhập thành công cho user: ${u}"\n}`;
+                    
+                    serverVerdict.className = "verdict-box verdict-warning";
+                    serverVerdict.innerHTML = "⚠️ Thành công nhưng thông tin đã bị lộ trên đường truyền!";
+
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = `<span>🚀 Bấm để gửi dữ liệu</span>`;
+                });
+
+            } else if (proto === "https") {
+                // Kịch bản 3: HTTPS
+                const fakeCipher = "0x7F" + btoa(u + p + Date.now()).substring(0, 36) + "...[TLSv1.3 Encrypted Record: AES-256-GCM]";
+                
+                clientBox.className = "terminal-box";
+                clientBox.innerHTML = `[${now}] TIẾN TRÌNH BẢO MẬT HTTPS (PORT 443):\n1. TLS 1.3 Handshake thành công với mybank.vn (ECDHE-RSA-AES256-GCM-SHA384)\n2. Xác minh chứng chỉ số: DigiCert Global Root CA (HỢP LỆ)\n3. Dữ liệu đã được mã hóa trước khi đưa vào đường truyền:\nCiphertext: ${fakeCipher}`;
+
+                animatePacketTransmission("https", () => {
+                    snifferStatus.innerText = "ENCRYPTED (TLS 1.3)";
+                    snifferStatus.style.background = "#10b981";
+
+                    hackerBox.className = "terminal-box success";
+                    hackerBox.innerHTML = `[${now}] BẮT GÓI TIN HTTPS (PORT 443):\n${fakeCipher}\n\n[Hacker action]: Thử giải mã gói tin...\n-> THẤT BẠI: Cần Session Key chỉ có Client & Server sở hữu.\n-> Không thể đọc thông tin hoặc chèn dữ liệu mà không làm hỏng MAC.`;
+                    
+                    hackerVerdict.className = "verdict-box verdict-success";
+                    hackerVerdict.innerHTML = "🛡️ An toàn: Hacker chỉ thấy rác mã hóa!";
+
+                    serverBox.className = "terminal-box success";
+                    serverBox.innerHTML = `[${now}] HTTP/2 200 OK (TLS 1.3 - Encrypted Session)\nServer: Nginx/1.24 (SSL Protected)\n\n[Server]: Dùng Private/Session Key giải mã thành công:\n{\n  "user": "${u}",\n  "pass": "${p}"\n}\n\n-> Tính toàn vẹn: SHA-384 MAC trùng khớp 100%!`;
+                    
+                    serverVerdict.className = "verdict-box verdict-success";
+                    serverVerdict.innerHTML = "✅ Bảo mật & Toàn vẹn tuyệt đối 100%!";
+
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = `<span>🚀 Bấm để gửi dữ liệu</span>`;
+                });
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            onProtocolChange();
+        });
+    </script>
+</body>
+</html>
