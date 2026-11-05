@@ -1130,7 +1130,7 @@
                     osc.stop(audioCtx.currentTime + duration);
                 }, delay);
             } catch (e) {
-                // AudioContext blocked or not supported
+                // AudioContext blocked
             }
         }
 
@@ -1140,17 +1140,11 @@
             btn.innerHTML = soundEnabled ? "🔊 Âm Thanh: Bật" : "🔇 Âm Thanh: Tắt";
         }
 
-        // Toggle password show/hide
         function togglePasswordVisibility() {
             const pwd = document.getElementById("password");
-            if (pwd.type === "password") {
-                pwd.type = "text";
-            } else {
-                pwd.type = "password";
-            }
+            pwd.type = pwd.type === "password" ? "text" : "password";
         }
 
-        // Presets
         const presets = {
             bank: {
                 user: "khachhang_vip88",
@@ -1176,13 +1170,15 @@
             document.getElementById("password").value = data.pass;
             document.getElementById("protocol").value = data.proto;
             
-            // Update active preset button style
+            // Fix triệt để lỗi active button
             document.querySelectorAll(".preset-btn").forEach(btn => {
                 if (!btn.classList.contains("sound-toggle")) {
                     btn.classList.remove("active");
                 }
             });
-            event.target.classList.add("active");
+            const activeBtn = Array.from(document.querySelectorAll(".preset-btn"))
+                .find(b => b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${key}'`));
+            if (activeBtn) activeBtn.classList.add("active");
 
             onProtocolChange();
             simulateSend();
@@ -1203,7 +1199,6 @@
             }
         }
 
-        // Animated Packet Moving Across the Network Beam
         function animatePacketTransmission(proto, callback) {
             const track = document.getElementById("pipelineTrack");
             const packet = document.getElementById("animatedPacket");
@@ -1214,7 +1209,6 @@
             const iconSpan = document.getElementById("packetIcon");
             const textSpan = document.getElementById("packetText");
 
-            // Reset classes
             packet.className = "animated-packet";
             nodeClient.classList.remove("active");
             nodeHacker.classList.remove("active");
@@ -1246,7 +1240,6 @@
 
             packet.style.left = `${clientX}px`;
 
-            // Step 1: Client -> Hacker
             let start = null;
             const duration1 = 600;
 
@@ -1259,7 +1252,6 @@
                 if (progress < 1) {
                     requestAnimationFrame(step1);
                 } else {
-                    // Arrived at Hacker
                     nodeClient.classList.remove("active");
                     nodeHacker.classList.add("active");
                     if (proto === "https") {
@@ -1272,7 +1264,6 @@
                     }
 
                     setTimeout(() => {
-                        // Step 2: Hacker -> Server
                         let start2 = null;
                         const duration2 = 600;
                         function step2(timestamp2) {
@@ -1284,7 +1275,6 @@
                             if (progress2 < 1) {
                                 requestAnimationFrame(step2);
                             } else {
-                                // Arrived at Server
                                 nodeHacker.classList.remove("active");
                                 nodeServer.classList.add("active");
                                 if (proto === "https") {
@@ -1292,7 +1282,7 @@
                                     playTone(587.33, 'triangle', 0.2);
                                     playTone(880, 'triangle', 0.3, 150);
                                 } else if (proto === "http") {
-                                    pipelineStatus.innerHTML = `⚠️ Gói tin đến Server thành công nhưng <strong>đã bị lộ trên đường truyền</strong>!`;
+                                    pipelineStatus.innerHTML = `⚠️️ Gói tin đến Server thành công nhưng <strong>đã bị lộ trên đường truyền</strong>!`;
                                 } else {
                                     pipelineStatus.innerHTML = `❌ Gói tin đến Server nhưng <strong>đã bị kẻ tấn công sửa đổi nội dung</strong>!`;
                                 }
@@ -1310,7 +1300,6 @@
             requestAnimationFrame(step1);
         }
 
-        // Core Simulation Function (Guarantees backward compatibility with original function and elements)
         function simulateSend() {
             const proto = document.getElementById("protocol").value;
             const u = document.getElementById("username").value || "user_demo";
@@ -1327,7 +1316,6 @@
             sendBtn.disabled = true;
             sendBtn.innerHTML = `<span>⏳ Đang truyền gói tin...</span>`;
 
-            // Clear verdicts temporarily during transit
             hackerVerdict.className = "verdict-box";
             hackerVerdict.innerHTML = "<span>⏳ Đang phân tích gói tin bắt được...</span>";
             serverVerdict.className = "verdict-box";
@@ -1336,23 +1324,22 @@
             const now = new Date().toLocaleTimeString();
 
             if (proto === "raw") {
-                // Kịch bản 1: Raw Data
                 const rawPayload = `user=${u}&pass=${p}`;
                 clientBox.className = "terminal-box";
-                clientBox.innerHTML = `[${now}] Client bắt đầu gửi qua Socket thô:\nPayload: ${rawPayload}\nKích thước: ${rawPayload.length} bytes\nTrạng thái: Đã đẩy vào cáp mạng mà không có bất kỳ đóng gói bảo mật nào.`;
+                clientBox.innerHTML = `[${now}] Client bắt đầu gửi qua Socket thô:\nPayload: ${rawPayload}\nKích thước: ${rawPayload.length} bytes\nTrạng thái: Đã đẩy vào mạng không mã hóa.`;
 
                 animatePacketTransmission("raw", () => {
                     snifferStatus.innerText = "PACKET INJECTED";
                     snifferStatus.style.background = "#ef4444";
 
                     hackerBox.className = "terminal-box danger";
-                    hackerBox.innerHTML = `[${now}] BẮT ĐƯỢC DỮ LIỆU THÔ (RAW STREAM):\n${rawPayload}\n\n-> ⚠️ Hacker tiến hành MITM Packet Injection:\n-> Thay đổi mật khẩu thành: "HACKED_BY_MITM"`;
+                    hackerBox.innerHTML = `[${now}] BẮT ĐƯỢC DỮ LIỆU THÔ (RAW STREAM):\n${rawPayload}\n\n-> ⚠️ Hacker can thiệp MITM:\n-> Thay đổi mật khẩu thành: "HACKED_BY_MITM"`;
                     
                     hackerVerdict.className = "verdict-box verdict-danger";
                     hackerVerdict.innerHTML = "❌ Bị đánh cắp và giả mạo dữ liệu!";
 
                     serverBox.className = "terminal-box danger";
-                    serverBox.innerHTML = `[${now}] Máy chủ nhận gói tin:\nuser=${u}&pass=HACKED_BY_MITM\n\n[Checksum / Hash check]: KHÔNG TỒN TẠI\n[Cảnh báo]: Dữ liệu đã bị kẻ đứng giữa thay đổi hoàn toàn trước khi tới server.`;
+                    serverBox.innerHTML = `[${now}] Máy chủ nhận gói tin:\nuser=${u}&pass=HACKED_BY_MITM\n\n[Hash check]: KHÔNG CÓ\n[Cảnh báo]: Dữ liệu đã bị đổi!`;
                     
                     serverVerdict.className = "verdict-box verdict-danger";
                     serverVerdict.innerHTML = "⚠️ Lỗi tính toàn vẹn (Dữ liệu đã bị đổi)";
@@ -1362,8 +1349,7 @@
                 });
 
             } else if (proto === "http") {
-                // Kịch bản 2: HTTP
-                const httpRequest = `POST /api/v1/login HTTP/1.1\nHost: mybank.vn\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\nContent-Type: application/json\nContent-Length: ${JSON.stringify({user: u, pass: p}).length}\n\n{"user": "${u}", "pass": "${p}"}`;
+                const httpRequest = `POST /api/v1/login HTTP/1.1\nHost: mybank.vn\nContent-Type: application/json\n\n{"user": "${u}", "pass": "${p}"}`;
                 
                 clientBox.className = "terminal-box";
                 clientBox.innerHTML = `[${now}] Gửi HTTP Request qua Port 80:\n${httpRequest}`;
@@ -1373,40 +1359,39 @@
                     snifferStatus.style.background = "#ea580c";
 
                     hackerBox.className = "terminal-box danger";
-                    hackerBox.innerHTML = `[${now}] BẮT GÓI TIN HTTP (PLAINTEXT - PORT 80):\n${httpRequest}\n\n-> 🔓 Không có mã hóa: Hacker đọc được 100% nội dung request!`;
+                    hackerBox.innerHTML = `[${now}] BẮT GÓI TIN HTTP (PLAINTEXT - PORT 80):\n${httpRequest}\n\n-> 🔓 Lộ toàn bộ nội dung bản rõ!`;
                     
                     hackerVerdict.className = "verdict-box verdict-danger";
                     hackerVerdict.innerHTML = `🚨 LỘ TÀI KHOẢN: ${u} | MẬT KHẨU: ${p}`;
 
                     serverBox.className = "terminal-box warning";
-                    serverBox.innerHTML = `[${now}] HTTP/1.1 200 OK\nServer: Nginx/1.24\nContent-Type: application/json\n\n{\n  "status": "success",\n  "message": "Đăng nhập thành công cho user: ${u}"\n}`;
+                    serverBox.innerHTML = `[${now}] HTTP/1.1 200 OK\n\n{\n  "status": "success",\n  "message": "Đăng nhập thành công cho user: ${u}"\n}`;
                     
                     serverVerdict.className = "verdict-box verdict-warning";
-                    serverVerdict.innerHTML = "⚠️ Thành công nhưng thông tin đã bị lộ trên đường truyền!";
+                    serverVerdict.innerHTML = "⚠️ Đăng nhập được nhưng dữ liệu đã bị lộ!";
 
                     sendBtn.disabled = false;
                     sendBtn.innerHTML = `<span>🚀 Bấm để gửi dữ liệu</span>`;
                 });
 
             } else if (proto === "https") {
-                // Kịch bản 3: HTTPS
-                const fakeCipher = "0x7F" + btoa(u + p + Date.now()).substring(0, 36) + "...[TLSv1.3 Encrypted Record: AES-256-GCM]";
+                const fakeCipher = "0x7F" + btoa(u + p + Date.now()).substring(0, 36) + "...[TLSv1.3 AES-256-GCM]";
                 
                 clientBox.className = "terminal-box";
-                clientBox.innerHTML = `[${now}] TIẾN TRÌNH BẢO MẬT HTTPS (PORT 443):\n1. TLS 1.3 Handshake thành công với mybank.vn (ECDHE-RSA-AES256-GCM-SHA384)\n2. Xác minh chứng chỉ số: DigiCert Global Root CA (HỢP LỆ)\n3. Dữ liệu đã được mã hóa trước khi đưa vào đường truyền:\nCiphertext: ${fakeCipher}`;
+                clientBox.innerHTML = `[${now}] TIẾN TRÌNH HTTPS (PORT 443):\n1. TLS 1.3 Handshake hoàn tất\n2. Dữ liệu đã mã hóa:\nCiphertext: ${fakeCipher}`;
 
                 animatePacketTransmission("https", () => {
                     snifferStatus.innerText = "ENCRYPTED (TLS 1.3)";
                     snifferStatus.style.background = "#10b981";
 
                     hackerBox.className = "terminal-box success";
-                    hackerBox.innerHTML = `[${now}] BẮT GÓI TIN HTTPS (PORT 443):\n${fakeCipher}\n\n[Hacker action]: Thử giải mã gói tin...\n-> THẤT BẠI: Cần Session Key chỉ có Client & Server sở hữu.\n-> Không thể đọc thông tin hoặc chèn dữ liệu mà không làm hỏng MAC.`;
+                    hackerBox.innerHTML = `[${now}] BẮT GÓI TIN HTTPS (PORT 443):\n${fakeCipher}\n\n-> Thử giải mã... THẤT BẠI: Không có Session Key!`;
                     
                     hackerVerdict.className = "verdict-box verdict-success";
                     hackerVerdict.innerHTML = "🛡️ An toàn: Hacker chỉ thấy rác mã hóa!";
 
                     serverBox.className = "terminal-box success";
-                    serverBox.innerHTML = `[${now}] HTTP/2 200 OK (TLS 1.3 - Encrypted Session)\nServer: Nginx/1.24 (SSL Protected)\n\n[Server]: Dùng Private/Session Key giải mã thành công:\n{\n  "user": "${u}",\n  "pass": "${p}"\n}\n\n-> Tính toàn vẹn: SHA-384 MAC trùng khớp 100%!`;
+                    serverBox.innerHTML = `[${now}] HTTP/2 200 OK (TLS 1.3)\n\n[Server giải mã bằng Session Key]:\n{\n  "user": "${u}",\n  "pass": "${p}"\n}\n\n-> Chữ ký MAC trùng khớp 100%!`;
                     
                     serverVerdict.className = "verdict-box verdict-success";
                     serverVerdict.innerHTML = "✅ Bảo mật & Toàn vẹn tuyệt đối 100%!";
@@ -1417,7 +1402,6 @@
             }
         }
 
-        // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             onProtocolChange();
         });
