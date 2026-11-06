@@ -1,36 +1,88 @@
-# 🌐 PHÒNG THÍ NGHIỆM MÔ PHỎNG AN TOÀN MẠNG: HTTP VS HTTPS
-### Dự Án Báo Cáo / Thực Hành - Nhóm 10
+# WebChat — phòng chat thời gian thực
 
-Ứng dụng web tương tác mô phỏng trực quan cơ chế hoạt động, sự khác biệt cốt lõi giữa **HTTP** (truyền bản rõ qua Port 80) và **HTTPS** (mã hóa đầu cuối TLS 1.3 qua Port 443), đồng thời minh họa tấn công trung gian **Man-in-the-Middle (MITM)**.
+Ứng dụng chat nhóm chạy real-time, viết bằng Node.js + WebSocket. Chỉ dùng một
+thư viện (`ws`), không cần database, không cần build.
 
----
+## Chạy thử
 
-## 🚀 Các Tính Năng Nổi Bật
+```bash
+npm install
+npm start
+```
 
-1. **Sơ Đồ Đường Truyền Gói Tin Động (Animated Network Pipeline)**:
-   - Mô phỏng trực quan luồng gói tin di chuyển theo thời gian thực từ **Máy Khách (Client)** qua trạm trung chuyển **Wi-Fi / Router (Hacker)** tới **Máy Chủ (Server)**.
-   - Gói tin hiển thị trạng thái tương ứng (Bản rõ / Giả mạo / Mã hóa an toàn TLS).
+Mở `http://localhost:3000`, nhập tên hiển thị và tên phòng rồi bấm
+**Enter chat**. Muốn xem chat thật thì mở hai cửa sổ trình duyệt, vào cùng một
+phòng.
 
-2. **Mô Phỏng 3 Kịch Bản Truyền Tải**:
-   - **1. Không dùng giao thức (Raw Data / Socket thô)**: Dữ liệu bị kẻ gian bắt và dễ dàng tráo đổi nội dung (Packet Injection / Tampering).
-   - **2. Giao thức HTTP (Cổng 80)**: Dữ liệu gửi đi dưới dạng Plaintext, bị kẻ nghe lén đọc trộm hoàn toàn mật khẩu và tài khoản.
-   - **3. Giao thức HTTPS (Cổng 443 - TLS 1.3)**: Dữ liệu được mã hóa bằng thuật toán đối xứng (AES-256-GCM) với Session Key độc quyền. Hacker chỉ thấy Ciphertext vô nghĩa và không thể can thiệp.
+```bash
+npm test        # tự khởi động server riêng rồi chạy bộ test
+npm run dev     # tự khởi động lại khi sửa code
+```
 
-3. **Giao Diện Hiện Đại & Trực Quan**:
-   - Thiết kế chuẩn **Glassmorphism**, hiệu ứng đèn LED trạng thái, hiệu ứng ánh sáng động.
-   - Terminal mô phỏng macOS/Linux với log chi tiết của Client, Wireshark Packet Sniffer và Nginx Server.
-   - Các bộ dữ liệu mẫu (Đăng nhập ngân hàng, Thẻ tín dụng, Tin mật quân sự).
-   - Bảng so sánh chuyên sâu về Cổng, Mã hóa, Tính toàn vẹn, Xác thực CA và Cảnh báo trình duyệt.
-   - Hiệu ứng âm thanh mô phỏng (Web Audio API) với nút bật/tắt tiện lợi.
+## Tính năng
 
----
+- Nhiều phòng, tạo và chuyển phòng trực tiếp
+- Hiện danh sách người online, báo khi có người vào/ra
+- Báo "đang gõ..."
+- Vào phòng được xem lại 50 tin gần nhất
+- Tự kết nối lại khi rớt mạng
+- Giới hạn spam (8 tin / 3 giây) và độ dài tin nhắn
+- Giao diện dùng được trên điện thoại
 
-## 💻 Hướng Dẫn Chạy
+## Thư mục
 
-Dự án được xây dựng hoàn toàn bằng **HTML, CSS và JavaScript thuần**, không cần cài đặt thư viện ngoài (Zero Dependency):
-- Nhấp đúp chuột vào file `index.html` để mở trực tiếp trên bất kỳ trình duyệt nào (Chrome, Edge, Firefox, Safari).
-- Hoặc chạy qua Live Server trên VS Code / trình duyệt web.
+```
+server.js        server HTTP + WebSocket
+docs/            giao diện web (html, css, js)
+test/smoke.mjs   bộ test
+Dockerfile       build image
+```
 
----
+## Cấu hình
 
-*Phát triển bởi Nhóm 10.*
+| Biến | Mặc định | Ý nghĩa |
+| --- | --- | --- |
+| `PORT` | `3000` | Cổng HTTP và WebSocket |
+| `HOST` | `0.0.0.0` | Địa chỉ nghe |
+
+Các giới hạn (độ dài tin, số tin lịch sử, chống spam) nằm trong `LIMITS` ở đầu
+[server.js](server.js).
+
+## Đưa lên mạng
+
+**Render / Railway / Fly.io** — trỏ dịch vụ về repo này, lệnh khởi động là
+`npm start`, cổng lấy từ biến `PORT`. WebSockets chạy ngay, không cần cấu hình
+thêm.
+
+**Docker**
+
+```bash
+docker build -t webchat .
+docker run -p 3000:3000 webchat
+```
+
+## Còn GitHub Pages thì sao?
+
+Pages chỉ phục vụ file tĩnh, **không chạy được `server.js`**. Đưa mỗi Pages lên
+thì trang hiện ra nhưng chat không nối được — vẫn phải có nơi chạy server.
+
+Nếu muốn tách giao diện sang Pages:
+
+1. Deploy server ở nơi khác rồi lấy URL của nó.
+2. **Settings → Pages → Source: Deploy from a branch**, chọn `main` và thư mục
+   **`/docs`**.
+3. Mở trang một lần kèm hậu tố: `/?server=https://ten-ung-dung.onrender.com`
+
+Trình duyệt sẽ nhớ URL này và hiện tên server ở đầu trang để bạn biết tin nhắn
+đang đi đâu. Muốn quay lại chế độ cũ, mở `/?server=` (không nhập gì phía sau).
+
+## Giới hạn
+
+Toàn bộ dữ liệu nằm trong RAM: khởi động lại là mất lịch sử, chạy nhiều
+instance cùng lúc cần sticky session. Không có tài khoản, mật khẩu hay kiểm
+duyệt nội dung — ai mở được URL đều chat được. Hợp làm demo hoặc dùng nội bộ,
+chưa phải sản phẩm hoàn chỉnh.
+
+## Bản quyền
+
+MIT — xem [LICENSE](LICENSE).
