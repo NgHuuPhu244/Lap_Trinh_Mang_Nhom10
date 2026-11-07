@@ -1,0 +1,26 @@
+{
+  "name": "lap_trinh_mang_nhom10",
+  "version": "1.0.0",
+  "description": "Module này cung cấp giao diện và cơ chế xử lý luồng dữ liệu hoàn toàn trên bộ nhớ tạm (**RAM / In-Memory**), bao gồm hai tác vụ chính: **Truyền dữ liệu (Data Transfer)** và **Xóa dữ liệu (Data Deletion)**.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NgHuuPhu244/Lap_Trinh_Mang_Nhom10.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/NgHuuPhu244/Lap_Trinh_Mang_Nhom10/issues"
+  },
+  "homepage": "https://github.com/NgHuuPhu244/Lap_Trinh_Mang_Nhom10#readme",
+  "dependencies": {
+    "express": "^5.3.0",
+    "socket.io": "^4.8.4"
+  }
+}

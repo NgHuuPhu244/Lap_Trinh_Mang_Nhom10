@@ -1,23 +1,14 @@
-# In-Memory Data Transfer & Deletion Module
+# 👻 GhostDrop - Hệ thống Truyền & Tự Hủy Dữ Liệu Trên RAM (Nhóm 10)
 
-Module này cung cấp giao diện và cơ chế xử lý luồng dữ liệu hoàn toàn trên bộ nhớ tạm (**RAM / In-Memory**), bao gồm hai tác vụ chính: **Truyền dữ liệu (Data Transfer)** và **Xóa dữ liệu (Data Deletion)**. 
+## 1. Giới thiệu đề tài
+- *Môn học:* Lập trình mạng (GV: Vũ Quốc Hưng)
+- *Giao thức sử dụng:* WebSocket (ws:// - RFC 6455) kết hợp lưu trữ khả biến trên RAM (In-Memory Storage).
+- *Cơ chế bảo mật:* 
+  - Giao diện ngụy trang thành ứng dụng Máy tính bỏ túi (nhập mã 1337 và nhấn = để mở khóa vào phiên ẩn).
+  - Toàn bộ tin nhắn và file chỉ lưu trên bộ nhớ Map() trong RAM của Server, tuyệt đối không ghi xuống ổ cứng hay Database.
+  - Khi nhấn nút *XÓA SẠCH RAM*, vùng nhớ lập tức bị giải phóng và đồng bộ xóa trắng trên mọi thiết bị theo thời gian thực.
 
-Hệ thống được thiết kế theo kiến trúc **Zero-Database Persistence** — mọi thao tác đọc, ghi, chuyển tiếp và hủy dữ liệu đều diễn ra trực tiếp trên bộ nhớ khả biến (volatile memory) và không lưu trữ xuống bất kỳ hệ quản trị cơ sở dữ liệu vật lý (SQL/NoSQL) hay ổ cứng nào.
-
----
-
-## Đặc điểm Kiến trúc (Architecture Highlights)
-
-* **Lưu trữ trên RAM (In-Memory Storage):** Dữ liệu được khởi tạo và giữ trong các cấu trúc dữ liệu trên RAM (như `Array`, `Map`, `Object` ở phía Client/Server hoặc biến trạng thái `State`).
-* **Không lưu Database (No-DB Persistence):** Loại bỏ hoàn toàn độ trễ I/O của ổ cứng và các truy vấn Database. Tăng tốc độ phản hồi lên mức tối đa và đảm bảo tính riêng tư tuyệt đối cho dữ liệu nhạy cảm/tạm thời.
-* **Vòng đời dữ liệu ngắn (Ephemeral Lifecycle):** Dữ liệu chỉ tồn tại trong suốt phiên làm việc (Session) hoặc cho đến khi tiến trình (Process) kết thúc / trang web được tải lại (Reload).
-
----
-
-## Cơ chế Hoạt động (Core Workflows)
-
-### 1. Lưu trữ tạm thời (In-Memory Allocation)
-Khi dữ liệu được nhập vào từ giao diện hoặc nhận qua luồng (stream), hệ thống cấp phát vùng nhớ trực tiếp trên Heap/RAM thông qua biến cục bộ hoặc Store quản lý trạng thái.
-
-```text
-[User Input / Payload] ──> [Memory Buffer / State (RAM)] (Không ghi xuống Disk/DB)
+## 2. Hướng dẫn cài đặt và chạy
+```bash
+npm install
+node server.js

@@ -1,60 +1,78 @@
 const express = require('express');
-const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
-const PORT = 3000;
+const server = http.createServer(app);
 
-// Tăng giới hạn dung lượng để nhận được cả text dài hoặc file ảnh/tài liệu (Base64)
-app.use(express.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+const io = new Server(server, {
+    maxHttpBufferSize: 5e7
+});
 
-// =========================================================
-// BỘ NHỚ RAM: Dữ liệu chỉ sống ở đây, KHÔNG dùng Database
-// Cấu trúc: Map<roomCode, Array<{ id, text, fileName, fileData, time }>>
-// =========================================================
+app.use(express.static(__dirname));
+
 const ramStorage = new Map();
 
-// 1. API lấy dữ liệu từ RAM theo Mã Phòng (Session)
-app.get('/api/data/:room', (req, res) => {
-    const room = req.params.room;
-    const data = ramStorage.get(room) || [];
-    res.json({ success: true, data });
+io.on('connection', (socket) => {
+    socket.on('join-room', (room) => {
+        socket.rooms.forEach(r => { if (r !== socket.id) socket.leave(r); });
+        socket.join(room);
+        
+        const currentData = ramStorage.get(room) || [];
+        socket.emit('sync-ram', currentData);
+
+        io.emit('protocol-event', {
+            action: 'HANDSHAKE',
+            room: room,
+            detail: 'Client [' + socket.id.slice(0,5) + '] nâng cấp kết nối sang ws:// (Phiên: ' + room + ')',
+            ramCount: currentData.length
+        });
+    });
+
+    socket.on('push-to-ram', ({ room, text, fileName, fileData }) => {
+        if (!ramStorage.has(room)) ramStorage.set(room, []);
+
+        const newItem = {
+            id: Date.now().toString(),
+            sender: socket.id.slice(0, 5),
+            text: text || '',
+            fileName: fileName || null,
+            fileData: fileData || null,
+            time: new Date().toLocaleTimeString('vi-VN')
+        };
+
+        ramStorage.get(room).push(newItem);
+        const updatedList = ramStorage.get(room);
+
+        io.to(room).emit('sync-ram', updatedList);
+
+        io.emit('protocol-event', {
+            action: 'FRAME_PUSH',
+            room: room,
+            detail: 'Truyền WebSocket Frame (' + (fileName ? 'File: ' + fileName : 'Text') + ') -> Ghi vào RAM',
+            ramCount: updatedList.length
+        });
+    });
+
+    socket.on('nuke-ram', (room) => {
+        if (ramStorage.has(room)) {
+            ramStorage.set(room, []);
+            ramStorage.delete(room);
+        }
+
+        io.to(room).emit('sync-ram', []);
+
+        io.emit('protocol-event', {
+            action: 'RAM_NUKE',
+            room: room,
+            detail: 'Lệnh hủy khẩn cấp! Đã giải phóng hoàn toàn vùng nhớ RAM của phiên "' + room + '"',
+            ramCount: 0
+        });
+    });
 });
 
-// 2. API truyền dữ liệu mới lên RAM
-app.post('/api/data/:room', (req, res) => {
-    const room = req.params.room;
-    const { text, fileName, fileData } = req.body;
-
-    if (!ramStorage.has(room)) {
-        ramStorage.set(room, []);
-    }
-
-    const newItem = {
-        id: Date.now().toString(),
-        text: text || '',
-        fileName: fileName || null,
-        fileData: fileData || null, // Lưu chuỗi Base64 của file ngay trên RAM
-        time: new Date().toLocaleTimeString('vi-VN')
-    };
-
-    ramStorage.get(room).push(newItem);
-    res.json({ success: true, item: newItem });
-});
-
-// 3. API XÓA SẠCH DỮ LIỆU KHỎI RAM (Burn / Nuke)
-app.delete('/api/data/:room', (req, res) => {
-    const room = req.params.room;
-    
-    if (ramStorage.has(room)) {
-        // Ghi đè mảng rỗng rồi xóa hẳn key khỏi Map để Garbage Collector dọn khỏi RAM
-        ramStorage.set(room, []);
-        ramStorage.delete(room);
-    }
-    
-    res.json({ success: true, message: 'Đã xóa sạch dữ liệu khỏi RAM!' });
-});
-
-app.listen(PORT, () => {
-    console.log([GhostDrop] Server đang chạy tại: http://localhost:${PORT});
-    console.log([Lưu ý] Mọi dữ liệu chỉ lưu trên RAM. Tắt server là mất hết!);
+const PORT = 3000;
+server.listen(PORT, () => {
+    console.log('GhostDrop (Bai 3): http://localhost:' + PORT + '/index.html');
+    console.log('Minh hoa Giao thuc (Bai 2): http://localhost:' + PORT + '/visualizer.html');
 });
