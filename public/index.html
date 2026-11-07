@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Máy Tính Online - Công Cụ Tính Toán Nhanh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans">
+
+    <!-- ========================================== -->
+    <!-- 1. GIAO DIỆN NGỤY TRANG (MÁY TÍNH BỎ TÚI) -->
+    <!-- Nhập 1337 rồi bấm '=' để mở khóa vào phiên -->
+    <!-- ========================================== -->
+    <div id="decoy-screen" class="bg-white p-6 rounded-2xl shadow-xl w-80 border border-gray-200">
+        <div class="text-xs text-gray-400 mb-1 text-right">Casio FX-Web</div>
+        <input id="calc-display" type="text" readonly value="0" 
+            class="w-full bg-gray-100 text-right text-3xl font-mono p-4 rounded-lg mb-4 border border-gray-300 focus:outline-none">
+        
+        <div class="grid grid-cols-4 gap-2 text-lg font-semibold">
+            <button onclick="clearCalc()" class="col-span-2 bg-red-100 text-red-600 p-3 rounded-lg hover:bg-red-200">AC</button>
+            <button onclick="pressCalc('/')" class="bg-gray-200 p-3 rounded-lg hover:bg-gray-300">÷</button>
+            <button onclick="pressCalc('*')" class="bg-gray-200 p-3 rounded-lg hover:bg-gray-300">×</button>
+            
+            <button onclick="pressCalc('7')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">7</button>
+            <button onclick="pressCalc('8')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">8</button>
+            <button onclick="pressCalc('9')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">9</button>
+            <button onclick="pressCalc('-')" class="bg-gray-200 p-3 rounded-lg hover:bg-gray-300">-</button>
+            
+            <button onclick="pressCalc('4')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">4</button>
+            <button onclick="pressCalc('5')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">5</button>
+            <button onclick="pressCalc('6')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">6</button>
+            <button onclick="pressCalc('+')" class="bg-gray-200 p-3 rounded-lg hover:bg-gray-300">+</button>
+            
+            <button onclick="pressCalc('1')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">1</button>
+            <button onclick="pressCalc('2')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">2</button>
+            <button onclick="pressCalc('3')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">3</button>
+            <button onclick="solveCalc()" class="row-span-2 bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">=</button>
+            
+            <button onclick="pressCalc('0')" class="col-span-2 bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">0</button>
+            <button onclick="pressCalc('.')" class="bg-gray-50 border p-3 rounded-lg hover:bg-gray-100">.</button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. GIAO DIỆN GHOSTDROP THẬT (ẨN MẶC ĐỊNH)  -->
+    <!-- ========================================== -->
+    <div id="ghost-screen" class="hidden bg-zinc-950 text-green-400 p-6 rounded-xl shadow-2xl w-full max-w-2xl border border-green-500/30 font-mono">
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-green-500/30 pb-4 mb-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-wider text-green-500 flex items-center gap-2">
+                    👻 GHOSTDROP <span class="text-xs bg-green-950 text-green-400 px-2 py-1 rounded border border-green-500/40">RAM-ONLY</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-1">Trạng thái: Không lưu Database. Tự hủy ngay lập tức khi xóa.</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="lockScreen()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-2 rounded text-xs border border-zinc-600">
+                    🕵️ Ngụy trang lại (ESC)
+                </button>
+                <button onclick="nukeData()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded text-xs shadow-lg shadow-red-600/30 animate-pulse">
+                    🔥 XÓA SẠCH RAM (NUKE)
+                </button>
+            </div>
+        </div>
+
+        <!-- Chọn Phiên (Session Room) -->
+        <div class="flex gap-2 mb-4 bg-zinc-900 p-3 rounded-lg border border-zinc-800 items-center">
+            <span class="text-xs text-zinc-400">Mã Phiên (Session Key):</span>
+            <input id="room-input" type="text" value="room-bi-mat-01" 
+                class="bg-black text-green-400 px-3 py-1 rounded border border-zinc-700 text-sm flex-1 focus:outline-none focus:border-green-500">
+            <button onclick="loadData()" class="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">
+                Kết nối / Làm mới
+            </button>
+        </div>
+
+        <!-- Khu vực hiển thị dữ liệu trong RAM -->
+        <div id="data-list" class="bg-black/80 h-72 overflow-y-auto p-4 rounded-lg border border-zinc-800 mb-4 space-y-3">
+            <!-- Dữ liệu sẽ render ở đây -->
+        </div>
+
+        <!-- Form truyền dữ liệu / File lên RAM -->
+        <div class="space-y-3 bg-zinc-900 p-4 rounded-lg border border-zinc-800">
+            <textarea id="msg-input" rows="2" placeholder="Nhập tin nhắn mật hoặc dữ liệu cần truyền vào RAM..." 
+                class="w-full bg-black text-green-300 p-3 rounded border border-zinc-700 text-sm focus:outline-none focus:border-green-500"></textarea>
+            
+            <div class="flex justify-between items-center">
+                <input id="file-input" type="file" class="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-zinc-800 file:text-green-400 hover:file:bg-zinc-700">
+                
+                <button onclick="sendData()" class="bg-green-600 hover:bg-green-500 text-black font-bold px-6 py-2 rounded text-sm">
+                    🚀 Truyền lên RAM
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // LOGIC MÁY TÍNH NGỤY TRANG
+        // ==========================================
+        const SECRET_PIN = "1337"; // Mã bí mật để vào GhostDrop
+        let calcExp = "";
+
+        function pressCalc(val) {
+            if (calcExp === "0") calcExp = "";
+            calcExp += val;
+            document.getElementById('calc-display').value = calcExp;
+        }
+
+        function clearCalc() {
+            calcExp = "";
+            document.getElementById('calc-display').value = "0";
+        }
+
+        function solveCalc() {
+            // Nếu nhập đúng mã 1337 và bấm '=' -> Mở khóa giao diện ẩn
+            if (calcExp === SECRET_PIN) {
+                clearCalc();
+                document.body.className = "bg-zinc-900 min-h-screen flex items-center justify-center p-4";
+                document.getElementById('decoy-screen').classList.add('hidden');
+                document.getElementById('ghost-screen').classList.remove('hidden');
+                document.title = "GhostDrop // Ephemeral RAM Session";
+                loadData();
+                return;
+            }
+            try {
+                calcExp = String(eval(calcExp));
+                document.getElementById('calc-display').value = calcExp;
+            } catch {
+                document.getElementById('calc-display').value = "Error";
+                calcExp = "";
+            }
+        }
+
+        // Bấm nút Ngụy trang hoặc phím ESC để quay lại màn hình Máy tính ngay lập tức
+        function lockScreen() {
+            document.body.className = "bg-gray-100 min-h-screen flex items-center justify-center font-sans";
+            document.getElementById('ghost-screen').classList.add('hidden');
+            document.getElementById('decoy-screen').classList.remove('hidden');
+            document.title = "Máy Tính Online - Công Cụ Tính Toán Nhanh";
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") lockScreen();
+        });
+
+        // ==========================================
+        // LOGIC TRUYỀN & XÓA DỮ LIỆU TRÊN RAM
+        // ==========================================
+        function getRoom() {
+            return document.getElementById('room-input').value.trim() || 'default';
+        }
+
+        async function loadData() {
+            const room = getRoom();
+            const res = await fetch(/api/data/${room});
+            const json = await res.json();
+            renderList(json.data);
+        }
+
+        function renderList(items) {
+            const container = document.getElementById('data-list');
+            if (!items || items.length === 0) {
+                container.innerHTML = <div class="text-center text-zinc-600 text-xs py-20">[RAM TRỐNG] Chưa có dữ liệu nào trong phiên này hoặc dữ liệu đã bị hủy.</div>;
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div class="bg-zinc-900/90 p-3 rounded border border-green-500/20 text-xs">
+                    <div class="flex justify-between text-zinc-500 mb-1">
+                        <span>ID: ${item.id}</span>
+                        <span>${item.time}</span>
+                    </div>
+                    ${item.text ? <p class="text-green-300 whitespace-pre-wrap text-sm mb-2">${escapeHtml(item.text)}</p> : ''}
+                    ${item.fileData ? `
+                        <div class="mt-2 pt-2 border-t border-zinc-800 flex items-center justify-between">
+                            <span class="text-amber-400">📎 File trên RAM: ${escapeHtml(item.fileName)}</span>
+                            <a href="${item.fileData}" download="${item.fileName}" class="bg-green-900/60 hover:bg-green-800 text-green-300 px-2 py-1 rounded border border-green-500/30">
+                                Tải xuống
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendData() {
+            const room = getRoom();
+            const text = document.getElementById('msg-input').value.trim();
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+
+            if (!text && !file) return alert('Nhập tin nhắn hoặc chọn file để truyền!');
+
+            let fileData = null;
+            let fileName = null;
+
+            if (file) {
+                fileName = file.name;
+                fileData = await toBase64(file);
+            }
+
+            await fetch(/api/data/${room}, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, fileName, fileData })
+            });
+
+            document.getElementById('msg-input').value = '';
+            fileInput.value = '';
+            loadData();
+        }
+
+        // Bấm nút XÓA SẠCH RAM
+        async function nukeData() {
+            const room = getRoom();
+            await fetch(/api/data/${room}, { method: 'DELETE' });
+            loadData();
+        }
+
+        // Hàm hỗ trợ đọc File sang Base64 để nhét thẳng vào biến RAM
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
+        // Tự động đồng bộ dữ liệu trên RAM mỗi 2 giây
+        setInterval(() => {
+            if (!document.getElementById('ghost-screen').classList.contains('hidden')) {
+                loadData();
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
